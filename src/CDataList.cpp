@@ -40,7 +40,7 @@ main(int argc, char **argv)
         for (const auto &f : fields) {
            int show1 = 0;
 
-           auto len = f.size();
+           int len = f.size();
 
            for (auto j = 0; j < len; ++j) {
              switch (f[j]) {
@@ -389,7 +389,7 @@ encodeData(uint show, const uchar *data)
 
 void
 CDataList::
-printData(uint show, int length, bool newline)
+printData(uint show, int /*length*/, bool newline)
 {
   size_t size = showSize(show);
 
