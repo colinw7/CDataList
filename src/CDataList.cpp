@@ -472,7 +472,7 @@ void
 CDataList::
 printDouble(uint show)
 {
-  if      (isnan(dword_[0])) {
+  if      (std::isnan(dword_[0])) {
     if (show != uint(Show::Double))
       printf("NaN              ");
     else

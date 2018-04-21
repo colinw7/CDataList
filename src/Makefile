@@ -18,7 +18,7 @@ OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRC))
 LIBS = -lCStrUtil
 
 CPPFLAGS = \
--std=c++11 \
+-std=c++14 \
 -I. \
 -I../../CStrUtil/include \
 
