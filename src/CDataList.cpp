@@ -38,25 +38,25 @@ main(int argc, char **argv)
         CStrUtil::addFields(str, fields, ":");
 
         for (const auto &f : fields) {
-           int show1 = 0;
+           uint show1 = 0;
 
-           int len = f.size();
+           auto len = f.size();
 
-           for (auto j = 0; j < len; ++j) {
+           for (uint j = 0; j < len; ++j) {
              switch (f[j]) {
-               case 'd': show1 |= int(CDataList::Show::Double ); break;
-               case 'f': show1 |= int(CDataList::Show::Float  ); break;
-               case 'i': show1 |= int(CDataList::Show::Integer); break;
-               case 's': show1 |= int(CDataList::Show::Short  ); break;
-               case 'c': show1 |= int(CDataList::Show::Char   ); break;
-               case 'C': show1 |= int(CDataList::Show::Chars  ); break;
-               case 'b': show1 |= int(CDataList::Show::Byte   ); break;
-               default :                                         break;
+               case 'd': show1 |= uint(CDataList::Show::Double ); break;
+               case 'f': show1 |= uint(CDataList::Show::Float  ); break;
+               case 'i': show1 |= uint(CDataList::Show::Integer); break;
+               case 's': show1 |= uint(CDataList::Show::Short  ); break;
+               case 'c': show1 |= uint(CDataList::Show::Char   ); break;
+               case 'C': show1 |= uint(CDataList::Show::Chars  ); break;
+               case 'b': show1 |= uint(CDataList::Show::Byte   ); break;
+               default :                                          break;
              }
            }
 
            if (show1 == 0)
-             show1 = int(CDataList::Show::All);
+             show1 = uint(CDataList::Show::All);
 
            dataList.addShow(show1);
          }
@@ -180,7 +180,7 @@ showData()
   else {
     showSet();
 
-    int show = showSet_[showSet_.size() - 1];
+    uint show = showSet_[showSet_.size() - 1];
 
     showAll(show);
   }
@@ -279,12 +279,12 @@ bool
 CDataList::
 showSet()
 {
-  int ns = (isRepeat() ? showSet_.size() : showSet_.size() - 1);
+  auto ns = uint(isRepeat() ? showSet_.size() : showSet_.size() - 1);
 
-  for (int i = 0; i < ns; ++i) {
+  for (uint i = 0; i < ns; ++i) {
     uint show = showSet_[i];
 
-    int doffset = showSize(show);
+    auto doffset = showSize(show);
 
     if (! showOne(show))
       return false;
@@ -307,7 +307,7 @@ showSet()
 
 bool
 CDataList::
-showOne(int show)
+showOne(uint show)
 {
   if (offset_ > 0 && fp_ != stdin)
     fseek(fp_, offset_, SEEK_SET);
@@ -324,7 +324,7 @@ showOne(int show)
 
 void
 CDataList::
-showAll(int show)
+showAll(uint show)
 {
   if (offset_ > 0 && fp_ != stdin)
     fseek(fp_, offset_, SEEK_SET);
@@ -343,13 +343,13 @@ showAll(int show)
 
 bool
 CDataList::
-readData(int show)
+readData(uint show)
 {
   size_t size = showSize(show);
 
   uchar data[8];
 
-  int num = fread(data, size, 1, fp_);
+  auto num = fread(data, size, 1, fp_);
 
   if (num != 1)
     return false;
@@ -460,7 +460,7 @@ printData(uint show, int /*length*/, bool newline)
         printf("\n");
     }
     else {
-      printf("%c", encodeChar(cword_[0]));
+      printf("%c", encodeChar(char(cword_[0])));
 
       if (n_ > 0 && ((n_ % width()) == 0))
         printf("\n");
@@ -621,7 +621,7 @@ printChars(uint /*show*/, int i, int n)
     int k = i*n + j;
 
     if (isprint(cword_[k]) && ! iscntrl(cword_[k]))
-      cstring[j] = cword_[k];
+      cstring[j] = char(cword_[k]);
     else
       cstring[j] = '.';
   }
@@ -637,23 +637,29 @@ printChar(uint show, int i, int n)
 {
   if      (n == 4) {
     if (show != uint(Show::Char))
-      printf("%3c %3c %3c %3c ", encodeChar(cword_[2*i + 0]), encodeChar(cword_[2*i + 1]),
-             encodeChar(cword_[2*i + 2]), encodeChar(cword_[2*i + 3]));
+      printf("%3c %3c %3c %3c ", encodeChar(char(cword_[2*i + 0])),
+                                 encodeChar(char(cword_[2*i + 1])),
+                                 encodeChar(char(cword_[2*i + 2])),
+                                 encodeChar(char(cword_[2*i + 3])));
     else
-      printf("%c%c%c%c ", encodeChar(cword_[2*i + 0]), encodeChar(cword_[2*i + 1]),
-             encodeChar(cword_[2*i + 2]), encodeChar(cword_[2*i + 3]));
+      printf("%c%c%c%c ", encodeChar(char(cword_[2*i + 0])),
+                          encodeChar(char(cword_[2*i + 1])),
+                          encodeChar(char(cword_[2*i + 2])),
+                          encodeChar(char(cword_[2*i + 3])));
   }
   else if (n == 2) {
     if (show != uint(Show::Char))
-      printf("%3c %3c ", encodeChar(cword_[2*i + 0]), encodeChar(cword_[2*i + 1]));
+      printf("%3c %3c ", encodeChar(char(cword_[2*i + 0])),
+                         encodeChar(char(cword_[2*i + 1])));
     else
-      printf("%c%c ", encodeChar(cword_[2*i + 0]), encodeChar(cword_[2*i + 1]));
+      printf("%c%c ", encodeChar(char(cword_[2*i + 0])),
+                      encodeChar(char(cword_[2*i + 1])));
   }
   else if (n == 1) {
     if (show != uint(Show::Char))
-      printf("%3c ", encodeChar(cword_[2*i + 0]));
+      printf("%3c ", encodeChar(char(cword_[2*i + 0])));
     else
-      printf("%c ", encodeChar(cword_[2*i + 0]));
+      printf("%c ", encodeChar(char(cword_[2*i + 0])));
   }
 }
 

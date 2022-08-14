@@ -44,7 +44,7 @@ class CDataList {
   int width() const { return width_; }
   void setWidth(int i) { width_ = i; }
 
-  void addShow(int show) {
+  void addShow(uint show) {
     showOr_  |= show;
     showAnd_ &= show;
 
@@ -71,10 +71,10 @@ class CDataList {
 
   bool showSet();
 
-  bool showOne(int show);
-  void showAll(int show);
+  bool showOne(uint show);
+  void showAll(uint show);
 
-  bool readData(int show);
+  bool readData(uint show);
 
   void encodeData(uint show, const uchar *data);
 
@@ -93,24 +93,24 @@ class CDataList {
   size_t showSize(uint show) const;
 
  private:
-  FILE             *fp_      { 0 };
-  bool              number_  { false };
-  bool              title_   { false };
-  bool              repeat_  { false };
-  bool              join_    { false };
-  int               length_  { -1 };
-  int               offset_  { 0 };
-  int               width_   { 20 };
-  size_t            size_    { 1 };
-  uint              showOr_  { 0 };
-  uint              showAnd_ { uint(Show::All) };
-  std::vector<int>  showSet_;
-  int               n_       { 1 };
-  double            dword_[1];
-  float             fword_[2];
-  int               iword_[2];
-  short             hword_[4];
-  uchar             cword_[8];
+  FILE              *fp_      { nullptr };
+  bool               number_  { false };
+  bool               title_   { false };
+  bool               repeat_  { false };
+  bool               join_    { false };
+  int                length_  { -1 };
+  int                offset_  { 0 };
+  int                width_   { 20 };
+  size_t             size_    { 1 };
+  uint               showOr_  { 0 };
+  uint               showAnd_ { uint(Show::All) };
+  std::vector<uint>  showSet_;
+  int                n_       { 1 };
+  double             dword_[1];
+  float              fword_[2];
+  int                iword_[2];
+  short              hword_[4];
+  uchar              cword_[8];
 };
 
 #endif
