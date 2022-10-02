@@ -289,7 +289,7 @@ showSet()
     if (! showOne(show))
       return false;
 
-    offset_ += doffset;
+    offset_ += int(doffset);
 
     if (length_ > 0) {
       --length_;
