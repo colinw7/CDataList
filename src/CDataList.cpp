@@ -12,7 +12,13 @@
 
 void usage(int rc=1) {
   std::cerr << "Usage: CDataList " <<
-               "[-h] [-s[dfiscCb]] [-n] [-t] [-o <off>] [-l <len> ] [--|<filename>]" << std::endl;
+               "[-h] [-s[dfiscCb]] [-n] [-t] [-o <off>] [-l <len> ] [--|<filename>]\n" <<
+               " -sd : double\n" <<
+               " -sf : float\n" <<
+               " -si : integer\n" <<
+               " -sc : char\n" <<
+               " -sC : chars\n" <<
+               " -sb : byte\n";
   exit(rc);
 }
 
