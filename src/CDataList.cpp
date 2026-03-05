@@ -8,122 +8,6 @@
 #include <climits>
 #include <cfloat>
 #include <cmath>
-#include <vector>
-
-void usage(int rc=1) {
-  std::cerr << "Usage: CDataList " <<
-               "[-h] [-s[dfiscCb]] [-n] [-t] [-o <off>] [-l <len> ] [--|<filename>]\n" <<
-               " -sd : double\n" <<
-               " -sf : float\n" <<
-               " -si : integer\n" <<
-               " -sc : char\n" <<
-               " -sC : chars\n" <<
-               " -sb : byte\n";
-  exit(rc);
-}
-
-int
-main(int argc, char **argv)
-{
-  if (argc < 2)
-    usage(1);
-
-  CDataList dataList;
-
-  std::string filename;
-
-  for (int i = 1; i < argc; i++) {
-    if (argv[i][0] == '-') {
-      if      (strcmp(argv[i], "-n") == 0)
-        dataList.setNumber(true);
-      else if (strncmp(argv[i], "-s", 2) == 0) {
-        std::string str(&argv[i][2]);
-
-        std::vector<std::string> fields;
-
-        CStrUtil::addFields(str, fields, ":");
-
-        for (const auto &f : fields) {
-           uint show1 = 0;
-
-           auto len = f.size();
-
-           for (uint j = 0; j < len; ++j) {
-             switch (f[j]) {
-               case 'd': show1 |= uint(CDataList::Show::Double ); break;
-               case 'f': show1 |= uint(CDataList::Show::Float  ); break;
-               case 'i': show1 |= uint(CDataList::Show::Integer); break;
-               case 's': show1 |= uint(CDataList::Show::Short  ); break;
-               case 'c': show1 |= uint(CDataList::Show::Char   ); break;
-               case 'C': show1 |= uint(CDataList::Show::Chars  ); break;
-               case 'b': show1 |= uint(CDataList::Show::Byte   ); break;
-               default :                                          break;
-             }
-           }
-
-           if (show1 == 0)
-             show1 = uint(CDataList::Show::All);
-
-           dataList.addShow(show1);
-         }
-      }
-      else if (strcmp(argv[i], "-o") == 0) {
-        if (i < argc - 1)
-          dataList.setOffset(atoi(argv[++i]));
-      }
-      else if (strcmp(argv[i], "-l") == 0) {
-        if (i < argc - 1)
-          dataList.setLength(atoi(argv[++i]));
-      }
-      else if (strcmp(argv[i], "-t") == 0) {
-        dataList.setTitle(true);
-      }
-      else if (strcmp(argv[i], "-r") == 0) {
-        dataList.setRepeat(true);
-      }
-      else if (strcmp(argv[i], "-j") == 0) {
-        dataList.setJoin(true);
-      }
-      else if (strcmp(argv[i], "-w") == 0) {
-        if (i < argc - 1)
-          dataList.setWidth(atoi(argv[++i]));
-      }
-      else if (strcmp(argv[i], "-h") == 0) {
-        usage(0);
-      }
-      else if (strncmp(argv[i], "--", 2) == 0) {
-        filename = "-";
-      }
-      else {
-        std::cerr << "Invalid Option '" << argv[i] << "'" << std::endl;
-        usage(1);
-      }
-    }
-    else if (filename == "") {
-      filename = argv[i];
-    }
-    else {
-      std::cerr << "Invalid Argument '" << argv[i] << "'" << std::endl;
-      usage(1);
-    }
-  }
-
-  if (filename == "") {
-    std::cerr << "No files specified" << std::endl;
-    usage(1);
-  }
-
-  //---
-
-  if (! dataList.init(filename))
-    exit(1);
-
-  //---
-
-  dataList.showData();
-
-  exit(0);
-}
 
 CDataList::
 CDataList()
@@ -145,7 +29,7 @@ init(const std::string &filename)
     fp_ = fopen(filename.c_str(), "r");
 
     if (! fp_) {
-      std::cerr << "Can't open file '" << filename << "'" << std::endl;
+      errorMsg("Can't open file '" + filename + "'");
       return false;
     }
   }
@@ -168,6 +52,8 @@ void
 CDataList::
 showData()
 {
+  line_ = "";
+
   size_ = showSize(showOr_);
 
   //---
@@ -193,92 +79,108 @@ showData()
 
   if (isSingleShow(Show::Char)) {
     if (n_ > 0 && ((n_ % width()) != 0))
-      printf("\n");
+      flushLine();
   }
+
+  flushLine();
 }
 
 void
 CDataList::
 showTitle()
 {
+  line_ = "";
+
   // display title
-  if (isNumber()) printf("        ");
+  if (isNumber())
+    line_ += "        ";
 
-  if (! isSingleShow(Show::Double ) && hasShowDouble ()) printf("     Double      " );
-  if (! isSingleShow(Show::Float  ) && hasShowFloat  ()) printf("      Float      " );
-  if (! isSingleShow(Show::Integer) && hasShowInteger()) printf("    Integer      " );
+  if (! isSingleShow(Show::Double ) && hasShowDouble())
+    line_ += "     Double      ";
+  if (! isSingleShow(Show::Float  ) && hasShowFloat())
+    line_ += "      Float      ";
+  if (! isSingleShow(Show::Integer) && hasShowInteger())
+    line_ += "    Integer      ";
 
   if (! isSingleShow(Show::Short) && hasShowShort()) {
     if (size_ >= 4)
-      printf("  Short1   Short2 ");
+      line_ += "  Short1   Short2 ";
     else
-      printf("  Short  ");
+      line_ += "  Short  ";
   }
 
   if (! isSingleShow(Show::Byte) && hasShowByte()) {
     if      (size_ >= 4)
-      printf(" B1  B2  B3  B4 ");
+      line_ += " B1  B2  B3  B4 ";
     else if (size_ >= 2)
-      printf(" B1  B2 ");
+      line_ += " B1  B2 ";
     else
-      printf(" B1 ");
+      line_ += " B1 ";
   }
 
   if (! isSingleShow(Show::Char) && hasShowChar()) {
     if      (size_ >= 4)
-      printf(" C1  C2  C3  C4 ");
+      line_ += " C1  C2  C3  C4 ";
     else if (size_ >= 2)
-      printf(" C1  C2 ");
+      line_ += " C1  C2 ";
     else
-      printf(" C1 ");
+      line_ += " C1 ";
   }
 
-  if (! isSingleShow(Show::Chars) && hasShowChars()) printf("Char ");
+  if (! isSingleShow(Show::Chars) && hasShowChars())
+    line_ += "Char ";
 
-  if (! isSingleShow(Show::Double)  && ! isSingleShow(Show::Float) &&
-      ! isSingleShow(Show::Integer) && ! isSingleShow(Show::Short) &&
-      ! isSingleShow(Show::Byte)    && ! isSingleShow(Show::Char ) &&
-      ! isSingleShow(Show::Chars))
-    printf("\n");
+  if (line_ != "") {
+    outputLine(line_);
 
-  if (isNumber()) printf("        ");
+    line_ = "";
+  }
 
-  if (! isSingleShow(Show::Double)  && hasShowDouble ()) printf("---------------- " );
-  if (! isSingleShow(Show::Float)   && hasShowFloat  ()) printf("---------------- " );
-  if (! isSingleShow(Show::Integer) && hasShowInteger()) printf("---------------- " );
+  if (isNumber())
+    line_ += "        ";
+
+  if (! isSingleShow(Show::Double)  && hasShowDouble ())
+    line_ += "---------------- ";
+  if (! isSingleShow(Show::Float)   && hasShowFloat  ())
+    line_ += "---------------- ";
+  if (! isSingleShow(Show::Integer) && hasShowInteger())
+    line_ += "---------------- ";
 
   if (! isSingleShow(Show::Short) && hasShowShort()) {
     if (size_ >= 4)
-      printf("  ------   ------ ");
+      line_ += "  ------   ------ ";
     else
-      printf("  ------ ");
+      line_ += "  ------ ";
   }
 
   if (! isSingleShow(Show::Byte) && hasShowByte()) {
     if      (size_ >= 4)
-      printf(" --  --  --  -- ");
+      line_ += " --  --  --  -- ";
     else if (size_ >= 2)
-      printf(" --  -- ");
+      line_ += " --  -- ";
     else
-      printf(" -- ");
+      line_ += " -- ";
   }
 
   if (! isSingleShow(Show::Char) && hasShowChar()) {
     if      (size_ >= 4)
-      printf(" --  --  --  -- ");
+      line_ += " --  --  --  -- ";
     else if (size_ >= 2)
-      printf(" --  -- ");
+      line_ += " --  -- ";
     else
-      printf(" -- ");
+      line_ += " -- ";
   }
 
-  if (! isSingleShow(Show::Chars) && hasShowChars()) printf("---- ");
+  if (! isSingleShow(Show::Chars) && hasShowChars())
+    line_ += "---- ";
 
-  if (! isSingleShow(Show::Double)  && ! isSingleShow(Show::Float) &&
-      ! isSingleShow(Show::Integer) && ! isSingleShow(Show::Short) &&
-      ! isSingleShow(Show::Byte)    && ! isSingleShow(Show::Char ) &&
-      ! isSingleShow(Show::Chars))
-    printf("\n\n");
+  if (line_ != "") {
+    outputLine(line_);
+
+    line_ = "";
+
+    outputLine(line_);
+  }
 }
 
 bool
@@ -306,7 +208,7 @@ showSet()
   }
 
   if (isJoin())
-    printf("\n");
+    flushLine();
 
   return true;
 }
@@ -338,7 +240,7 @@ showAll(uint show)
   while (readData(show)) {
     int l = (length_ > 0 ? length_ - n_ : INT_MAX);
 
-    printData(show, l, true);
+    printData(show, l, ! isStream());
 
     ++n_;
 
@@ -400,7 +302,8 @@ printData(uint show, int /*length*/, bool newline)
   size_t size = showSize(show);
 
   if      (size >= 8) {
-    if (isNumber()) printf("%6d: ", n_);
+    if (isNumber())
+      line_ += CStrUtil::strprintf("%6d: ", n_);
 
     if (show & uint(Show::Double )) printDouble(show);
     if (show & uint(Show::Float  )) printFloat(show, 0);
@@ -411,14 +314,15 @@ printData(uint show, int /*length*/, bool newline)
     if (show & uint(Show::Chars  )) printChars(show, 0, 4);
 
     if (newline)
-      printf("\n");
+      flushLine();
 
     //---
 
     if (show != uint(Show::Double)) {
-      if (isNumber()) printf("        ");
+      if (isNumber())
+        line_ += "        ";
 
-      if (show & uint(Show::Double )) printf("................ ");
+      if (show & uint(Show::Double )) line_ += "................ ";
       if (show & uint(Show::Float  )) printFloat(show, 1);
       if (show & uint(Show::Integer)) printInteger(show, 1);
       if (show & uint(Show::Short  )) printShort(show, 1, 2);
@@ -427,11 +331,12 @@ printData(uint show, int /*length*/, bool newline)
       if (show & uint(Show::Chars  )) printChars(show, 1, 4);
 
       if (newline)
-        printf("\n");
+        flushLine();
     }
   }
   else if (size >= 4) {
-    if (isNumber()) printf("%6d: ", n_);
+    if (isNumber())
+      line_ += CStrUtil::strprintf("%6d: ", n_);
 
     if (show & uint(Show::Float  )) printFloat(show, 0);
     if (show & uint(Show::Integer)) printInteger(show, 0);
@@ -441,10 +346,11 @@ printData(uint show, int /*length*/, bool newline)
     if (show & uint(Show::Chars  )) printChars(show, 0, 4);
 
     if (newline)
-      printf("\n");
+      flushLine();
   }
   else if (size >= 2) {
-    if (isNumber()) printf("%6d: ", n_);
+    if (isNumber())
+      line_ += CStrUtil::strprintf("%6d: ", n_);
 
     if (show & uint(Show::Short)) printShort(show, 0, 1);
     if (show & uint(Show::Byte )) printBytes(show, 0, 2);
@@ -452,24 +358,25 @@ printData(uint show, int /*length*/, bool newline)
     if (show & uint(Show::Chars)) printChars(show, 0, 2);
 
     if (newline)
-      printf("\n");
+      flushLine();
   }
   else if (size >= 1) {
     if (show != uint(Show::Char)) {
-      if (isNumber()) printf("%6d: ", n_);
+      if (isNumber())
+        line_ += CStrUtil::strprintf("%6d: ", n_);
 
       if (show & uint(Show::Byte )) printBytes(show, 0, 1);
       if (show & uint(Show::Char )) printChar (show, 0, 1);
       if (show & uint(Show::Chars)) printChars(show, 0, 1);
 
       if (newline)
-        printf("\n");
+        flushLine();
     }
     else {
-      printf("%c", encodeChar(char(cword_[0])));
+      line_ += CStrUtil::strprintf("%c", encodeChar(char(cword_[0])));
 
       if (n_ > 0 && ((n_ % width()) == 0))
-        printf("\n");
+        flushLine();
     }
   }
 }
@@ -480,9 +387,9 @@ printDouble(uint show)
 {
   if      (std::isnan(dword_[0])) {
     if (show != uint(Show::Double))
-      printf("NaN              ");
+      line_ += "NaN              ";
     else
-      printf("NaN ");
+      line_ += "NaN ";
   }
   else if (dword_[0] > -DBL_MAX && dword_[0] < DBL_MAX) {
     if (dword_[0] > -FLT_MAX && dword_[0] < FLT_MAX) {
@@ -501,20 +408,20 @@ printDouble(uint show)
           sprintf(dstring, "%.5lg", dword_[0]);
       }
 
-      printf("%s ", dstring);
+      line_ += CStrUtil::strprintf("%s ", dstring);
     }
     else {
       if (show != uint(Show::Double))
-        printf("%16.5lg ", dword_[0]);
+        line_ += CStrUtil::strprintf("%16.5lg ", dword_[0]);
       else
-        printf("%.5lg ", dword_[0]);
+        line_ += CStrUtil::strprintf("%.5lg ", dword_[0]);
     }
   }
   else {
     if (show != uint(Show::Double))
-      printf("................ ");
+      line_ += "................ ";
     else
-      printf(".... ");
+      line_ += ".... ";
   }
 }
 
@@ -524,9 +431,9 @@ printFloat(uint show, int i)
 {
   if      (isnanf(fword_[i])) {
     if (show != uint(Show::Float))
-      printf("NaN             ");
+      line_ += "NaN             ";
     else
-      printf("NaN ");
+      line_ += "NaN ";
   }
   else if (fword_[i] > -FLT_MAX && fword_[i] < FLT_MAX) {
     char fstring[64];
@@ -544,13 +451,13 @@ printFloat(uint show, int i)
         sprintf(fstring, "%.5g", fword_[i]);
     }
 
-    printf("%s ", fstring);
+    line_ += CStrUtil::strprintf("%s ", fstring);
   }
   else {
     if (show != uint(Show::Float))
-      printf("................ ");
+      line_ += "................ ";
    else
-      printf(".... ");
+      line_ += ".... ";
   }
 }
 
@@ -559,9 +466,9 @@ CDataList::
 printInteger(uint show, int i)
 {
   if (show != uint(Show::Integer))
-    printf("%16d ", iword_[i]);
+    line_ += CStrUtil::strprintf("%16d ", iword_[i]);
   else
-    printf("%d ", iword_[i]);
+    line_ += CStrUtil::strprintf("%d ", iword_[i]);
 }
 
 void
@@ -570,17 +477,17 @@ printShort(uint show, int i, int n)
 {
   if (n == 2) {
     if (show != uint(Show::Short))
-      printf("%8d %8d ", hword_[2*i + 0], hword_[2*i + 1]);
+      line_ += CStrUtil::strprintf("%8d %8d ", hword_[2*i + 0], hword_[2*i + 1]);
     else {
-      printf("%d ", hword_[2*i + 0]);
-      printf("%d ", hword_[2*i + 1]);
+      line_ += CStrUtil::strprintf("%d ", hword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%d ", hword_[2*i + 1]);
     }
   }
   else {
     if (show != uint(Show::Short))
-      printf("%8d ", hword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%8d ", hword_[2*i + 0]);
     else
-      printf("%d ", hword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%d ", hword_[2*i + 0]);
   }
 }
 
@@ -590,28 +497,29 @@ printBytes(uint show, int i, int n)
 {
   if      (n == 4) {
     if (show != uint(Show::Byte))
-      printf("%3d %3d %3d %3d ", cword_[2*i + 0], cword_[2*i + 1],
-             cword_[2*i + 2], cword_[2*i + 3]);
+      line_ += CStrUtil::strprintf("%3d %3d %3d %3d ",
+                                   cword_[2*i + 0], cword_[2*i + 1],
+                                   cword_[2*i + 2], cword_[2*i + 3]);
     else {
-      printf("%d", cword_[2*i + 0]);
-      printf("%d", cword_[2*i + 1]);
-      printf("%d", cword_[2*i + 2]);
-      printf("%d", cword_[2*i + 3]);
+      line_ += CStrUtil::strprintf("%d", cword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%d", cword_[2*i + 1]);
+      line_ += CStrUtil::strprintf("%d", cword_[2*i + 2]);
+      line_ += CStrUtil::strprintf("%d", cword_[2*i + 3]);
     }
   }
   else if (n == 2) {
     if (show != uint(Show::Byte))
-      printf("%3d %3d ", cword_[2*i + 0], cword_[2*i + 1]);
+      line_ += CStrUtil::strprintf("%3d %3d ", cword_[2*i + 0], cword_[2*i + 1]);
     else {
-      printf("%d ", cword_[2*i + 0]);
-      printf("%d ", cword_[2*i + 1]);
+      line_ += CStrUtil::strprintf("%d ", cword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%d ", cword_[2*i + 1]);
     }
   }
   else if (n == 1) {
     if (show != uint(Show::Byte))
-      printf("%3d ", cword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%3d ", cword_[2*i + 0]);
     else
-      printf("%d ", cword_[2*i + 0]);
+      line_ += CStrUtil::strprintf("%d ", cword_[2*i + 0]);
   }
 }
 
@@ -634,7 +542,7 @@ printChars(uint /*show*/, int i, int n)
 
   cstring[j] = '\0';
 
-  printf("%s ", cstring);
+  line_ += CStrUtil::strprintf("%s ", cstring);
 }
 
 void
@@ -643,29 +551,33 @@ printChar(uint show, int i, int n)
 {
   if      (n == 4) {
     if (show != uint(Show::Char))
-      printf("%3c %3c %3c %3c ", encodeChar(char(cword_[2*i + 0])),
-                                 encodeChar(char(cword_[2*i + 1])),
-                                 encodeChar(char(cword_[2*i + 2])),
-                                 encodeChar(char(cword_[2*i + 3])));
+      line_ += CStrUtil::strprintf("%3c %3c %3c %3c ",
+                                   encodeChar(char(cword_[2*i + 0])),
+                                   encodeChar(char(cword_[2*i + 1])),
+                                   encodeChar(char(cword_[2*i + 2])),
+                                   encodeChar(char(cword_[2*i + 3])));
     else
-      printf("%c%c%c%c ", encodeChar(char(cword_[2*i + 0])),
-                          encodeChar(char(cword_[2*i + 1])),
-                          encodeChar(char(cword_[2*i + 2])),
-                          encodeChar(char(cword_[2*i + 3])));
+      line_ += CStrUtil::strprintf("%c%c%c%c ",
+                                   encodeChar(char(cword_[2*i + 0])),
+                                   encodeChar(char(cword_[2*i + 1])),
+                                   encodeChar(char(cword_[2*i + 2])),
+                                   encodeChar(char(cword_[2*i + 3])));
   }
   else if (n == 2) {
     if (show != uint(Show::Char))
-      printf("%3c %3c ", encodeChar(char(cword_[2*i + 0])),
-                         encodeChar(char(cword_[2*i + 1])));
+      line_ += CStrUtil::strprintf("%3c %3c ",
+                                   encodeChar(char(cword_[2*i + 0])),
+                                   encodeChar(char(cword_[2*i + 1])));
     else
-      printf("%c%c ", encodeChar(char(cword_[2*i + 0])),
-                      encodeChar(char(cword_[2*i + 1])));
+      line_ += CStrUtil::strprintf("%c%c ",
+                                   encodeChar(char(cword_[2*i + 0])),
+                                   encodeChar(char(cword_[2*i + 1])));
   }
   else if (n == 1) {
     if (show != uint(Show::Char))
-      printf("%3c ", encodeChar(char(cword_[2*i + 0])));
+      line_ += CStrUtil::strprintf("%3c ", encodeChar(char(cword_[2*i + 0])));
     else
-      printf("%c ", encodeChar(char(cword_[2*i + 0])));
+      line_ += CStrUtil::strprintf("%c ", encodeChar(char(cword_[2*i + 0])));
   }
 }
 
@@ -693,4 +605,29 @@ showSize(uint show) const
     return 2;
 
   return 1;
+}
+
+void
+CDataList::
+flushLine()
+{
+  if (line_ != "") {
+    std::cout << line_ <<  "\n";
+
+    line_ = "";
+  }
+}
+
+void
+CDataList::
+outputLine(const std::string &line) const
+{
+  std::cout << line << "\n";
+}
+
+void
+CDataList::
+errorMsg(const std::string &msg) const
+{
+  std::cerr << msg << "\n";
 }

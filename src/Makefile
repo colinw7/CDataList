@@ -11,6 +11,7 @@ BIN_DIR = ../bin
 all: $(BIN_DIR)/CDataList
 
 SRC = \
+CDataListMain.cpp \
 CDataList.cpp \
 
 OBJS = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(SRC))
@@ -34,5 +35,5 @@ $(OBJS): $(OBJ_DIR)/%.o: %.cpp
 
 .SUFFIXES: .cpp
 
-$(BIN_DIR)/CDataList: $(OBJ_DIR)/CDataList.o
-	$(CC) $(LDEBUG) -o $(BIN_DIR)/CDataList $(OBJ_DIR)/CDataList.o $(LFLAGS) $(LIBS)
+$(BIN_DIR)/CDataList: $(OBJ_DIR)/CDataList.o $(OBJ_DIR)/CDataListMain.o
+	$(CC) $(LDEBUG) -o $(BIN_DIR)/CDataList $(OBJ_DIR)/CDataList.o $(OBJ_DIR)/CDataListMain.o $(LFLAGS) $(LIBS)

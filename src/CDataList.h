@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-typedef unsigned char uchar;
+using uchar = unsigned char;
 
 class CDataList {
  public:
@@ -34,6 +34,9 @@ class CDataList {
 
   bool isJoin() const { return join_; }
   void setJoin(bool b) { join_ = b; }
+
+  bool isStream() const { return stream_; }
+  void setStream(bool b) { stream_ = b; }
 
   int length() const { return length_; }
   void setLength(int i) { length_ = i; }
@@ -92,25 +95,37 @@ class CDataList {
 
   size_t showSize(uint show) const;
 
+  void flushLine();
+
+  void outputLine(const std::string &msg) const;
+
+  void errorMsg(const std::string &msg) const;
+
  private:
-  FILE              *fp_      { nullptr };
-  bool               number_  { false };
-  bool               title_   { false };
-  bool               repeat_  { false };
-  bool               join_    { false };
-  int                length_  { -1 };
-  int                offset_  { 0 };
-  int                width_   { 20 };
-  size_t             size_    { 1 };
-  uint               showOr_  { 0 };
-  uint               showAnd_ { uint(Show::All) };
-  std::vector<uint>  showSet_;
-  int                n_       { 1 };
-  double             dword_[1];
-  float              fword_[2];
-  int                iword_[2];
-  short              hword_[4];
-  uchar              cword_[8];
+  FILE *fp_ { nullptr };
+
+  // config
+  bool              number_  { false };
+  bool              title_   { false };
+  bool              repeat_  { false };
+  bool              join_    { false };
+  bool              stream_  { false };
+  int               length_  { -1 };
+  int               offset_  { 0 };
+  int               width_   { 20 };
+  size_t            size_    { 1 };
+  uint              showOr_  { 0 };
+  uint              showAnd_ { uint(Show::All) };
+  std::vector<uint> showSet_;
+  int               n_       { 1 };
+
+  double dword_[1];
+  float  fword_[2];
+  int    iword_[2];
+  short  hword_[4];
+  uchar  cword_[8];
+
+  std::string line_;
 };
 
 #endif
